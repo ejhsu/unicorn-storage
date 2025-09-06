@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@layer components {
+  .border2d {
+    @apply border-[3px] border-solid border-black rounded-xl;
+  }
+  .border2d-error {
+    @apply border-[3px] border-solid border-[#FF0000] rounded-xl;
+  }
+}

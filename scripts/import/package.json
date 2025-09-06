@@ -1,0 +1,13 @@
+{
+  "name": "import",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node import.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.4.0"
+  }
+}
