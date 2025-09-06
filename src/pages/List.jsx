@@ -116,7 +116,7 @@ function List() {
           setAlertMessage(null);
         }, 1500);
       }}>
-        <Box className="border2d bg-[#D9D9D9] w-20">
+        <Box className="border2d w-20" sx={{ backgroundColor: 'primary.main' }}>
           <Box className="flex justify-center items-center h-full">
             <ContentCopyIcon className="size-8" />
           </Box>
@@ -151,7 +151,7 @@ function List() {
           mode: 'confirm',
         });
       }}>
-        <Box className="border2d bg-[#D9D9D9] w-20">
+        <Box className="border2d w-20" sx={{ backgroundColor: 'primary.main' }}>
           <Box className="flex justify-center items-center h-full">
             <DeleteIcon className="size-8 text-[#FC0005]" />
           </Box>
