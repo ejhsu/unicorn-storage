@@ -106,7 +106,7 @@ const Item = () => {
         className="p-9 w-full h-full space-y-4"
       >
         <Box className="flex justify-between">
-          <IconButton className='rounded-[10px] border2d' onClick={() => handleBack(null)} sx={{ backgroundColor: 'primary.main' }} >
+          <IconButton className='rounded-[10px] border2d' onClick={() => handleBack(itemId || null)} sx={{ backgroundColor: 'primary.main' }} >
             <ArrowBackIosNewIcon className="size-8 text-black" />
           </IconButton>
         </Box>
