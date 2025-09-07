@@ -1,4 +1,3 @@
-import './Item.css';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import {
@@ -16,7 +15,8 @@ import { zhTW } from 'date-fns/locale';
 import { fromZonedTime } from "date-fns-tz";
 import { doc, getDoc } from 'firebase/firestore';
 import { isEmpty } from 'lodash-es';
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import BarcodeReaderIcon from '@mui/icons-material/BarcodeReader';
 import { useForm, Controller } from "react-hook-form";
 import { useNavigate, useParams } from "react-router";
 
@@ -109,8 +109,10 @@ const Item = () => {
           <IconButton className='rounded-[10px] border2d' onClick={() => handleBack(itemId || null)} sx={{ backgroundColor: 'primary.main' }} >
             <ArrowBackIosNewIcon className="size-8 text-black" />
           </IconButton>
+          <IconButton className='rounded-[10px] border2d' onClick={() => handleBack(itemId || null)} sx={{ backgroundColor: 'primary.main' }} >
+            <BarcodeReaderIcon className="size-8 text-black" />
+          </IconButton>
         </Box>
-
         <FormControl className="space-y-2 w-full">
           <FormLabel required className="text-sm text-black">名稱</FormLabel>
           <Controller

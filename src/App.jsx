@@ -1,5 +1,4 @@
 import { Box, CircularProgress } from '@mui/material';
-import './App.css';
 
 import { GoogleAuthProvider } from "firebase/auth";
 import { doc, getDoc, setDoc } from 'firebase/firestore';

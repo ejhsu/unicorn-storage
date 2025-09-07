@@ -1,4 +1,3 @@
-import CloseIcon from "@mui/icons-material/Close";
 import {
   Dialog,
   DialogTitle,
@@ -6,7 +5,6 @@ import {
   DialogActions,
   Button,
   Typography,
-  IconButton,
   Box,
 } from "@mui/material";
 import classNames from "classnames";

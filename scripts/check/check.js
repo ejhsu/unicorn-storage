@@ -1,3 +1,4 @@
+/* eslint-disable */
 const { initializeApp } = require('firebase-admin/app');
 const admin = require('firebase-admin');
 
