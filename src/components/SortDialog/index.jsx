@@ -1,18 +1,19 @@
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from '@mui/icons-material/Close';
 import {
+  Box,
   Dialog,
   DialogContent,
   DialogTitle,
-  Typography,
+  Divider,
   IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
-  Box,
-  Divider,
-} from "@mui/material";
-import { SORT_OPTIONS } from "../../constants/sort";
+  Typography,
+} from '@mui/material';
+
+import { SORT_OPTIONS } from '../../constants/sort';
 
 const SortDialog = ({ open, onClose, onItemClick, currentSort }) => {
   if (!open) {

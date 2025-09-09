@@ -1,33 +1,35 @@
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import BarcodeReaderIcon from '@mui/icons-material/BarcodeReader';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import {
-  TextField,
-  IconButton,
-  Button,
   Box,
+  Button,
   FormControl,
+  FormHelperText,
   FormLabel,
+  IconButton,
+  TextField,
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { endOfDay, fromUnixTime, getUnixTime, isPast, isValid } from "date-fns";
 import { zhTW } from 'date-fns/locale';
 import { fromZonedTime } from "date-fns-tz";
-import { doc, getDoc } from 'firebase/firestore';
 import { isEmpty } from 'lodash-es';
 import { useCallback, useEffect, useState } from "react";
-import BarcodeReaderIcon from '@mui/icons-material/BarcodeReader';
-import { useForm, Controller } from "react-hook-form";
-import { useNavigate, useParams } from "react-router";
+import { Controller, useForm } from "react-hook-form";
+import { useLocation, useNavigate, useParams } from "react-router";
 
 import AlertDialog from '../components/AlertDialog';
-import { db } from '../services/firebase';
-import { upsertItem } from '../services/item';
+import { getCode, loadItem as fsLoadItem, setCode, upsertItem } from '../services/item';
 
 const Item = () => {
   const navigate = useNavigate();
 
+  const location = useLocation();
   const { itemId } = useParams();
+
+  const code = location.state?.code || null;
 
   const [alertMessage, setAlertMessage] = useState(null);
   const [item, setItem] = useState(null);
@@ -50,14 +52,19 @@ const Item = () => {
   const onSubmit = async (data) => {
     const now = new Date();
     const docId = item?.docId || `${now.valueOf()}`;
+    const itemCode = code || item?.code || '';
     try {
-      await upsertItem(docId, {
-        docId,
-        name: data.name,
-        expiry: getUnixTime(fromZonedTime(endOfDay(data.date), 'Asia/Taipei')) * 1000,
-        created: item?.created || now.valueOf(),
-        updated: now.valueOf(),
-      });
+      await Promise.all([
+        upsertItem(docId, {
+          docId,
+          name: data.name,
+          expiry: getUnixTime(fromZonedTime(endOfDay(data.date), 'Asia/Taipei')) * 1000,
+          created: item?.created || now.valueOf(),
+          updated: now.valueOf(),
+          code: itemCode,
+        }),
+        itemCode ? setCode(itemCode, data.name) : null
+      ]);
       setAlertMessage({
         title: '儲存成功',
         cancelText: '',
@@ -86,11 +93,18 @@ const Item = () => {
   };
 
   const loadItem = useCallback(async (id) => {
-    const data = (await getDoc(doc(db, "storage/1/items", id))).data();
+    const data = await fsLoadItem(id);
     setItem(data);
     setValue('name', data.name);
     setValue('date', fromUnixTime(data.expiry / 1000));
     setValue('note', data.note || '');
+  }, [setValue]);
+
+  const loadCode = useCallback(async (code) => {
+    const doc = await getCode(code);
+    if (doc) {
+      setValue('name', doc.name);
+    }
   }, [setValue]);
 
   useEffect(() => {
@@ -98,6 +112,12 @@ const Item = () => {
       loadItem(itemId);
     }
   }, [itemId, loadItem]);
+
+  useEffect(() => {
+    if (code) {
+      loadCode(code);
+    }
+  }, [code, loadCode]);
 
   return (
     <>
@@ -109,7 +129,7 @@ const Item = () => {
           <IconButton className='rounded-[10px] border2d' onClick={() => handleBack(itemId || null)} sx={{ backgroundColor: 'primary.main' }} >
             <ArrowBackIosNewIcon className="size-8 text-black" />
           </IconButton>
-          <IconButton className='rounded-[10px] border2d' onClick={() => handleBack(itemId || null)} sx={{ backgroundColor: 'primary.main' }} >
+          <IconButton className='rounded-[10px] border2d' onClick={() => navigate('/items/scan')} sx={{ backgroundColor: 'primary.main' }} >
             <BarcodeReaderIcon className="size-8 text-black" />
           </IconButton>
         </Box>
@@ -133,6 +153,7 @@ const Item = () => {
               </Box>
             )}
           />
+          <FormHelperText>{code || item?.code ? `條碼: ${code || item?.code}` : ''}</FormHelperText>
         </FormControl>
 
         <FormControl className="space-y-2 w-full">

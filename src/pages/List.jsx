@@ -1,7 +1,9 @@
+import 'react-swipeable-list/dist/styles.css';
+
 import AddIcon from '@mui/icons-material/Add';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import SortIcon from '@mui/icons-material/Sort';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SortIcon from '@mui/icons-material/Sort';
 import { Box, CircularProgress, Fab, Typography } from '@mui/material';
 import { collection, getDocs } from 'firebase/firestore';
 import { isEmpty } from 'lodash-es';
@@ -18,13 +20,10 @@ import {
 
 import AlertDialog from '../components/AlertDialog';
 import ItemCard from '../components/ItemCard';
-import { auth, db } from '../services/firebase';
-
-
-import 'react-swipeable-list/dist/styles.css';
-import { deleteItem, duplicateItem } from '../services/item';
 import SortDialog from '../components/SortDialog';
 import { SORT_OPTIONS } from '../constants/sort';
+import { auth, db } from '../services/firebase';
+import { deleteItem, duplicateItem } from '../services/item';
 
 function List() {
   const { state } = useLocation();
@@ -193,7 +192,11 @@ function List() {
         </Fab>
         <Fab className='size-[60px] rounded-[10px] border-3 border-solid border-black' color="primary" onClick={() => {
           Notification.requestPermission();
-          navigate('/items');
+          if (localStorage.getItem('autoScan') === 'true') {
+            navigate('/items/scan');
+          } else {
+            navigate('/items');
+          }
         }}>
           <AddIcon className="size-10 font-black text-black" />
         </Fab>

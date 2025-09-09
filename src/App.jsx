@@ -1,6 +1,5 @@
 import { Box, CircularProgress } from '@mui/material';
-
-import { GoogleAuthProvider } from "firebase/auth";
+import { GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { isEmpty } from 'lodash-es';
 import { useEffect, useState } from 'react';

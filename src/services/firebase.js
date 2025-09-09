@@ -20,14 +20,14 @@ const app = initializeApp(firebaseConfig);
 
 const registerServiceWorker = async (onToken) => {
   if ('serviceWorker' in navigator) {
-    const registration = await navigator.serviceWorker.register(sw, {type: 'module'});
+    const registration = await navigator.serviceWorker.register(sw, { type: 'module' });
 
     const token = await getToken(messaging, {
       vapidKey: 'BDwmSQECA_R9XFgmyrCgH9XalGLsoLwlAYHLlvcIrfQR3hW7W5bUMDNRM6ROK9ZVEkyjHAebXmkMticWJO2THN4',
       serviceWorkerRegistration: registration,
     });
     onToken(token);
-    onMessage(messaging, (noti) => {console.log(noti)})
+    onMessage(messaging, (noti) => { console.log(noti); });
   }
 };
 
@@ -36,4 +36,4 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const ui = new firebaseui.auth.AuthUI(auth);
 
-export { app, db, auth, ui, registerServiceWorker };
+export { app, auth, db, registerServiceWorker, ui };

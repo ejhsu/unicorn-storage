@@ -1,8 +1,8 @@
-import { Box, Card, Typography } from "@mui/material";
-import { fromUnixTime, endOfDay, differenceInDays, getUnixTime } from 'date-fns';
+import { Box, Card, Typography } from '@mui/material';
+import { differenceInDays, endOfDay, fromUnixTime, getUnixTime } from 'date-fns';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
-import { STATUS } from "../../constants/status";
+import { STATUS } from '../../constants/status';
 
 
 const ItemCard = ({ item, onClick }) => {
