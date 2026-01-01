@@ -7,10 +7,10 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const { onSchedule } = require("firebase-functions/v2/scheduler");
-const logger = require("firebase-functions/logger");
-const admin = require("firebase-admin");
-const { setGlobalOptions } = require("firebase-functions/v2");
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+const logger = require('firebase-functions/logger');
+const admin = require('firebase-admin');
+const { setGlobalOptions } = require('firebase-functions/v2');
 
 const { fromZonedTime } = require('date-fns-tz');
 const { addDays, endOfDay, getUnixTime } = require('date-fns');
@@ -20,10 +20,9 @@ const timeZone = 'Asia/Taipei';
 const app = admin.initializeApp();
 const db = admin.firestore(app);
 const messaging = admin.messaging(app);
-setGlobalOptions({ region: "asia-east1" });
+setGlobalOptions({ region: 'asia-east1' });
 
-exports.expirynotify = onSchedule({ schedule: '0 12 * * *', timeZone: "Asia/Taipei" }, async () => {
-
+exports.expirynotify = onSchedule({ schedule: '0 12 * * *', timeZone: 'Asia/Taipei' }, async () => {
   const now = new Date();
   const endOfDayDate = endOfDay(now);
   const epochEndOfToday = fromZonedTime(endOfDayDate, timeZone);
@@ -31,9 +30,9 @@ exports.expirynotify = onSchedule({ schedule: '0 12 * * *', timeZone: "Asia/Taip
   const epochMillis7DaysAfter = getUnixTime(epoch7DaysAfter) * 1000;
   console.log('epoch7DaysAfter', epochMillis7DaysAfter);
 
-  const snapshot = await db.collection("/storage/1/items").where("expiry", "<=", epochMillis7DaysAfter).get();
+  const snapshot = await db.collection('/storage/1/items').where('expiry', '<=', epochMillis7DaysAfter).get();
   const targetItems = [];
-  snapshot.forEach(doc => {
+  snapshot.forEach((doc) => {
     logger.log(`Expired item: ${doc.id} ${JSON.stringify(doc.data())}`);
     targetItems.push(doc.data());
   });
@@ -43,11 +42,11 @@ exports.expirynotify = onSchedule({ schedule: '0 12 * * *', timeZone: "Asia/Taip
     return;
   }
 
-  const expired = targetItems.filter(item => item.expiry <= epochEndOfToday);
+  const expired = targetItems.filter((item) => item.expiry <= epochEndOfToday);
 
-  const tokens = await db.collection("/fcm-tokens/1/user-tokens").get();
+  const tokens = await db.collection('/fcm-tokens/1/user-tokens').get();
   const registrationTokens = [];
-  tokens.forEach(doc => {
+  tokens.forEach((doc) => {
     logger.log(`User: ${doc.id} ${JSON.stringify(doc.data())}`);
     logger.log(`Adding tokens: ${JSON.stringify(doc.data().tokens)}`);
     registrationTokens.push(...doc.data().tokens);
@@ -56,11 +55,11 @@ exports.expirynotify = onSchedule({ schedule: '0 12 * * *', timeZone: "Asia/Taip
     data: { expired: `${expired.length}`, expiredSoon: `${targetItems.length - expired.length}` },
     tokens: registrationTokens,
   };
-  
-  const resp = await messaging.sendEachForMulticast(message);
-  logger.log(`response of sendEachForMulticast: ${resp.successCount} ${resp.failureCount} ${JSON.stringify(resp.responses)}`)
 
-  logger.log("expiry notifications proceeded");
+  const resp = await messaging.sendEachForMulticast(message);
+  logger.log(`response of sendEachForMulticast: ${resp.successCount} ${resp.failureCount} ${JSON.stringify(resp.responses)}`);
+
+  logger.log('expiry notifications proceeded');
 });
 
 // Create and deploy your first functions

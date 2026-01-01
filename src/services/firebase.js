@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import * as firebaseui from 'firebaseui';
@@ -7,14 +7,13 @@ import * as firebaseui from 'firebaseui';
 import sw from './firebase-messaging-sw.js?worker&url';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBQxB9AeK1AMd8i4TIbfRMa9JI3SayA_r0",
-  authDomain: "unicorn-storage.firebaseapp.com",
-  projectId: "unicorn-storage",
-  storageBucket: "unicorn-storage.firebasestorage.app",
-  messagingSenderId: "297333036104",
-  appId: "1:297333036104:web:914a33c4ca10242b5a747d"
+  apiKey: 'AIzaSyBQxB9AeK1AMd8i4TIbfRMa9JI3SayA_r0',
+  authDomain: 'unicorn-storage.firebaseapp.com',
+  projectId: 'unicorn-storage',
+  storageBucket: 'unicorn-storage.firebasestorage.app',
+  messagingSenderId: '297333036104',
+  appId: '1:297333036104:web:914a33c4ca10242b5a747d',
 };
-
 
 const app = initializeApp(firebaseConfig);
 
@@ -27,7 +26,9 @@ const registerServiceWorker = async (onToken) => {
       serviceWorkerRegistration: registration,
     });
     onToken(token);
-    onMessage(messaging, (noti) => { console.log(noti); });
+    onMessage(messaging, (noti) => {
+      console.log(noti);
+    });
   }
 };
 

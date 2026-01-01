@@ -28,7 +28,9 @@ const SortDialog = ({ open, onClose, onItemClick, currentSort }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth classes={{ paper: 'border2d' }}>
       <DialogTitle component="div" className="flex justify-between items-center p-4 py-1">
-        <Typography variant="h6" className="font-semibold">排序方式</Typography>
+        <Typography variant="h6" className="font-semibold">
+          排序方式
+        </Typography>
         <IconButton aria-label="close" onClick={onClose}>
           <CloseIcon />
         </IconButton>
@@ -39,12 +41,7 @@ const SortDialog = ({ open, onClose, onItemClick, currentSort }) => {
           <List>
             {SORT_OPTIONS.map((option) => (
               <ListItem key={option.key} disablePadding sx={{ backgroundColor: currentSort === option.key ? 'primary.main' : 'inherit' }}>
-                <ListItemButton
-                  className="w-full"
-                  selected={currentSort === option.key}
-
-                  onClick={() => handleItemClick(option.key)}
-                >
+                <ListItemButton className="w-full" selected={currentSort === option.key} onClick={() => handleItemClick(option.key)}>
                   <ListItemText primary={option.label} />
                 </ListItemButton>
               </ListItem>

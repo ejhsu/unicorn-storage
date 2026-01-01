@@ -1,17 +1,16 @@
-import { deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 
-import { db } from "./firebase";
+import { db } from './firebase';
 
 const itemsPath = '/storage/1/items';
 const codePath = '/code/';
-
 
 export const upsertItem = async (docId, item) => {
   await setDoc(doc(db, itemsPath, docId), item);
 };
 
 export const loadItem = async (id) => {
-  return (await getDoc(doc(db, "storage/1/items", id))).data();
+  return (await getDoc(doc(db, 'storage/1/items', id))).data();
 };
 
 export const deleteItem = async (docId) => {

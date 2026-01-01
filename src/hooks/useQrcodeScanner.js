@@ -1,5 +1,5 @@
 import { Html5Qrcode, Html5QrcodeScannerState, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { useCallback,useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * A React hook for using the html5-qrcode library.
@@ -11,44 +11,44 @@ import { useCallback,useEffect, useRef, useState } from 'react';
  * @param {boolean} verbose - If true, logs verbose output to the console.
  * @returns {object} An object containing decodedText, error, and functions to start and stop the scanner.
  */
-const useQrCodeScanner = (
-  elementId,
-  qrCodeSuccessCallback,
-  qrCodeErrorCallback,
-  config = {},
-  verbose = false
-) => {
+const useQrCodeScanner = (elementId, qrCodeSuccessCallback, qrCodeErrorCallback, config = {}, verbose = false) => {
   const [decodedText, setDecodedText] = useState('');
   const [error, setError] = useState(null);
   const html5QrcodeRef = useRef(null);
 
   // Memoize the success callback
-  const onScanSuccess = useCallback((decodedText, decodedResult) => {
-    if (verbose) {
-      console.log(`Scan successful: ${decodedText}`, decodedResult);
-    }
-    setDecodedText(decodedText);
-    setError(null);
-    if (qrCodeSuccessCallback) {
-      qrCodeSuccessCallback(decodedText, decodedResult);
-    }
-  }, [verbose, qrCodeSuccessCallback]);
+  const onScanSuccess = useCallback(
+    (decodedText, decodedResult) => {
+      if (verbose) {
+        console.log(`Scan successful: ${decodedText}`, decodedResult);
+      }
+      setDecodedText(decodedText);
+      setError(null);
+      if (qrCodeSuccessCallback) {
+        qrCodeSuccessCallback(decodedText, decodedResult);
+      }
+    },
+    [verbose, qrCodeSuccessCallback],
+  );
 
   // Memoize the error callback
-  const onScanError = useCallback((errorMessage) => {
-    // Non-fatal errors are logged but not set as state to avoid UI clutter.
-    if (verbose) {
-      console.error(`QR Code scan error: ${errorMessage}`);
-    }
-    if (qrCodeErrorCallback) {
-      qrCodeErrorCallback(errorMessage);
-    }
-  }, [verbose, qrCodeErrorCallback]);
+  const onScanError = useCallback(
+    (errorMessage) => {
+      // Non-fatal errors are logged but not set as state to avoid UI clutter.
+      if (verbose) {
+        console.error(`QR Code scan error: ${errorMessage}`);
+      }
+      if (qrCodeErrorCallback) {
+        qrCodeErrorCallback(errorMessage);
+      }
+    },
+    [verbose, qrCodeErrorCallback],
+  );
 
   const startScanner = useCallback(async () => {
     const qrcode = html5QrcodeRef.current;
     if (!qrcode) {
-      const startError = "Html5Qrcode not initialized.";
+      const startError = 'Html5Qrcode not initialized.';
       setError(startError);
       console.error(startError);
       return;
@@ -59,12 +59,7 @@ const useQrCodeScanner = (
         return;
       }
 
-      await qrcode.start(
-        { facingMode: "environment" },
-        config,
-        onScanSuccess,
-        onScanError
-      );
+      await qrcode.start({ facingMode: 'environment' }, config, onScanSuccess, onScanError);
     } catch (err) {
       const startError = `Failed to start scanner: ${err.message}`;
       setError(startError);
@@ -78,7 +73,7 @@ const useQrCodeScanner = (
       try {
         await qrcode.stop();
       } catch (err) {
-        console.error("Failed to stop the scanner.", err);
+        console.error('Failed to stop the scanner.', err);
       }
     }
   }, []);
@@ -89,7 +84,7 @@ const useQrCodeScanner = (
       try {
         await qrcode.pause(shouldPauseVideo);
       } catch (err) {
-        console.error("Failed to pause the scanner.", err);
+        console.error('Failed to pause the scanner.', err);
       }
     }
   }, []);
@@ -104,8 +99,8 @@ const useQrCodeScanner = (
           Html5QrcodeSupportedFormats.CODE_39,
           Html5QrcodeSupportedFormats.CODE_93,
           Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8
-        ]
+          Html5QrcodeSupportedFormats.EAN_8,
+        ],
       });
     }
 
@@ -114,8 +109,8 @@ const useQrCodeScanner = (
     // Cleanup function to stop the scanner when the component unmounts
     return () => {
       if (qrcode && qrcode.getState() === Html5QrcodeScannerState.SCANNING) {
-        qrcode.stop().catch(err => {
-          console.error("Failed to stop the scanner on cleanup.", err);
+        qrcode.stop().catch((err) => {
+          console.error('Failed to stop the scanner on cleanup.', err);
         });
       }
     };

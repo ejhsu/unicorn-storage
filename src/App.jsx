@@ -7,7 +7,6 @@ import { Outlet } from 'react-router';
 
 import { auth, db, registerServiceWorker, ui } from './services/firebase';
 
-
 function App() {
   const [authLoaded, setAuthLoaded] = useState(false);
   const [user, setUser] = useState(null);
@@ -30,9 +29,7 @@ function App() {
       if (isEmpty(user)) {
         ui.start('#firebaseui-auth-container', {
           signInFlow: 'popup',
-          signInOptions: [
-            GoogleAuthProvider.PROVIDER_ID,
-          ]
+          signInOptions: [GoogleAuthProvider.PROVIDER_ID],
         });
       } else {
         try {
@@ -49,7 +46,6 @@ function App() {
             }
             setDoc(userDoc, userToken);
           });
-
         } catch (error) {
           alert('push error', error);
         }
@@ -57,20 +53,16 @@ function App() {
     }
   }, [authLoaded, user]);
 
-
   let content = <Outlet />;
   if (!authLoaded) {
     content = <CircularProgress />;
-  }
-  else if (isEmpty(user)) {
+  } else if (isEmpty(user)) {
     content = <Box id="firebaseui-auth-container" />;
   }
 
   return (
     <>
-      <Box className="w-svw h-svh flex justify-center items-center">
-        {content}
-      </Box>
+      <Box className="w-svw h-svh flex justify-center items-center">{content}</Box>
     </>
   );
 }
