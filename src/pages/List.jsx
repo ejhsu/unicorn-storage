@@ -1,11 +1,12 @@
 import 'react-swipeable-list/dist/styles.css';
 
 import AddIcon from '@mui/icons-material/Add';
+import ClearIcon from '@mui/icons-material/Clear';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import SortIcon from '@mui/icons-material/Sort';
-import { Box, CircularProgress, Fab, InputAdornment, TextField, Typography } from '@mui/material';
+import { Box, CircularProgress, Fab, IconButton, InputAdornment, TextField, Typography } from '@mui/material';
 import { collection, getDocs } from 'firebase/firestore';
 import { isEmpty } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
@@ -210,6 +211,13 @@ function List() {
                   <SearchIcon />
                 </InputAdornment>
               ),
+              endAdornment: searchQuery ? (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setSearchQuery('')}>
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
               className: 'rounded-lg bg-white',
               sx: {
                 '& fieldset': {
