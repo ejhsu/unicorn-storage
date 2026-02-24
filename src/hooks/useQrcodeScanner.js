@@ -61,7 +61,7 @@ const useQrCodeScanner = (elementId, qrCodeSuccessCallback, qrCodeErrorCallback,
 
       await qrcode.start({ facingMode: 'environment' }, config, onScanSuccess, onScanError);
     } catch (err) {
-      const startError = `Failed to start scanner: ${err.message}`;
+      const startError = `Failed to start scanner: ${err}`;
       setError(startError);
       console.error(startError, err);
     }

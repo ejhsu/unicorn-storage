@@ -1,16 +1,22 @@
-import { deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 
+import { getStoragePath } from '../constants/firestore';
 import { db } from './firebase';
 
-const itemsPath = '/storage/1/items';
+const itemsPath = getStoragePath();
 const codePath = '/code/';
+
+export const getItems = async () => {
+  const querySnapshot = await getDocs(collection(db, itemsPath));
+  return querySnapshot.docs.map((doc) => doc.data());
+};
 
 export const upsertItem = async (docId, item) => {
   await setDoc(doc(db, itemsPath, docId), item);
 };
 
 export const loadItem = async (id) => {
-  return (await getDoc(doc(db, 'storage/1/items', id))).data();
+  return (await getDoc(doc(db, itemsPath, id))).data();
 };
 
 export const deleteItem = async (docId) => {

@@ -125,11 +125,15 @@ const Item = () => {
           <IconButton
             className="rounded-[10px] border2d"
             onClick={() => handleBack(itemId || null)}
-            sx={{ backgroundColor: 'primary.main' }}
+            sx={{ backgroundColor: 'primary.main', '&:hover, &:active': { backgroundColor: 'primary.main' } }}
           >
             <ArrowBackIosNewIcon className="size-8 text-black" />
           </IconButton>
-          <IconButton className="rounded-[10px] border2d" onClick={() => navigate('/items/scan')} sx={{ backgroundColor: 'primary.main' }}>
+          <IconButton
+            className="rounded-[10px] border2d"
+            onClick={() => navigate('/items/scan')}
+            sx={{ backgroundColor: 'primary.main', '&:hover, &:active': { backgroundColor: 'primary.main' } }}
+          >
             <BarcodeReaderIcon className="size-8 text-black" />
           </IconButton>
         </Box>

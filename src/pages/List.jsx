@@ -7,7 +7,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import SortIcon from '@mui/icons-material/Sort';
 import { Box, CircularProgress, Fab, IconButton, InputAdornment, TextField, Typography } from '@mui/material';
-import { collection, getDocs } from 'firebase/firestore';
 import { isEmpty } from 'lodash-es';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
@@ -15,10 +14,12 @@ import { LeadingActions, SwipeableList, SwipeableListItem, SwipeAction, Trailing
 
 import AlertDialog from '../components/AlertDialog';
 import ItemCard from '../components/ItemCard';
+import ListAction from '../components/ListAction';
 import SortDialog from '../components/SortDialog';
 import { SORT_OPTIONS } from '../constants/sort';
-import { auth, db } from '../services/firebase';
-import { deleteItem, duplicateItem } from '../services/item';
+import { auth } from '../services/firebase';
+import { deleteItem, duplicateItem, getItems } from '../services/item';
+import pkg from '../../package.json';
 
 function List() {
   const { state } = useLocation();
@@ -32,6 +33,14 @@ function List() {
   const [items, setItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [alertMessage, setAlertMessage] = useState(null);
+  const [showVersion, setShowVersion] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowVersion(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleItemClick = (item) => {
     navigate(`/items/${item.docId}`);
@@ -42,16 +51,9 @@ function List() {
   };
 
   const fetchItems = async () => {
-    const q = collection(db, 'storage/1/items');
     try {
-      const querySnapshot = await getDocs(q);
-      setItems(
-        querySnapshot.docs
-          .map((doc) => doc.data())
-          .sort((item1, item2) => {
-            return item1.expiry - item2.expiry || item1.name.localeCompare(item2.name);
-          }),
-      );
+      const fetchedItems = await getItems();
+      setItems(fetchedItems);
       setItemsLoaded(true);
     } catch (error) {
       if (error.code === 'permission-denied') {
@@ -118,11 +120,9 @@ function List() {
           }, 1500);
         }}
       >
-        <Box className="border2d w-20" sx={{ backgroundColor: 'primary.main' }}>
-          <Box className="flex justify-center items-center h-full">
-            <ContentCopyIcon className="size-8" />
-          </Box>
-        </Box>
+        <ListAction>
+          <ContentCopyIcon className="size-8" />
+        </ListAction>
       </SwipeAction>
     </LeadingActions>
   );
@@ -155,11 +155,9 @@ function List() {
           });
         }}
       >
-        <Box className="border2d w-20" sx={{ backgroundColor: 'primary.main' }}>
-          <Box className="flex justify-center items-center h-full">
-            <DeleteIcon className="size-8 text-[#FC0005]" />
-          </Box>
-        </Box>
+        <ListAction>
+          <DeleteIcon className="size-8 text-[#FC0005]" />
+        </ListAction>
       </SwipeAction>
     </TrailingActions>
   );
@@ -198,6 +196,14 @@ function List() {
 
   return (
     <>
+      {showVersion && (
+        <Typography
+          variant="caption"
+          className="fixed top-2 left-2 z-50 text-gray-400 pointer-events-none"
+        >
+          v{pkg.version}
+        </Typography>
+      )}
       <Box className="p-4 flex flex-col w-full h-full overflow-y-auto justify-start items-center">
         <TextField
           className="w-full mb-4"
