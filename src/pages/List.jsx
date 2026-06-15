@@ -8,10 +8,11 @@ import SearchIcon from '@mui/icons-material/Search';
 import SortIcon from '@mui/icons-material/Sort';
 import { Box, CircularProgress, Fab, IconButton, InputAdornment, TextField, Typography } from '@mui/material';
 import { isEmpty } from 'lodash-es';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { LeadingActions, SwipeableList, SwipeableListItem, SwipeAction, TrailingActions, Type } from 'react-swipeable-list';
 
+import pkg from '../../package.json';
 import AlertDialog from '../components/AlertDialog';
 import ItemCard from '../components/ItemCard';
 import ListAction from '../components/ListAction';
@@ -19,7 +20,6 @@ import SortDialog from '../components/SortDialog';
 import { SORT_OPTIONS } from '../constants/sort';
 import { auth } from '../services/firebase';
 import { deleteItem, duplicateItem, getItems } from '../services/item';
-import pkg from '../../package.json';
 
 function List() {
   const { state } = useLocation();
@@ -35,6 +35,20 @@ function List() {
   const [alertMessage, setAlertMessage] = useState(null);
   const [showVersion, setShowVersion] = useState(true);
 
+  const isSwipingRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
+  const [searchHidden, setSearchHidden] = useState(false);
+
+  const handleScroll = (e) => {
+    const scrollTop = e.currentTarget.scrollTop;
+    if (scrollTop > lastScrollTopRef.current && scrollTop > 40) {
+      setSearchHidden(true); // 往下捲動：隱藏搜尋條
+    } else if (scrollTop < lastScrollTopRef.current) {
+      setSearchHidden(false); // 往上捲動：顯示搜尋條
+    }
+    lastScrollTopRef.current = scrollTop;
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowVersion(false);
@@ -43,6 +57,10 @@ function List() {
   }, []);
 
   const handleItemClick = (item) => {
+    // 桌面版滑動結束後的 mouseup 會接著觸發 click，吞掉這個 click 避免誤入商品頁
+    if (isSwipingRef.current) {
+      return;
+    }
     navigate(`/items/${item.docId}`);
   };
 
@@ -171,6 +189,14 @@ function List() {
           threshold={0.5}
           leadingActions={leadingActions(item)}
           trailingActions={trailingActions(item)}
+          onSwipeStart={() => {
+            isSwipingRef.current = true;
+          }}
+          onSwipeEnd={() => {
+            setTimeout(() => {
+              isSwipingRef.current = false;
+            }, 100);
+          }}
         >
           <ItemCard key={item.docId} item={item} onClick={handleItemClick} />
         </SwipeableListItem>
@@ -197,48 +223,51 @@ function List() {
   return (
     <>
       {showVersion && (
-        <Typography
-          variant="caption"
-          className="fixed top-2 left-2 z-50 text-gray-400 pointer-events-none"
-        >
+        <Typography variant="caption" className="fixed top-2 left-2 z-50 text-gray-400 pointer-events-none">
           v{pkg.version}
         </Typography>
       )}
-      <Box className="p-4 flex flex-col w-full h-full overflow-y-auto justify-start items-center">
-        <TextField
-          className="w-full mb-4"
-          placeholder="搜尋"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-              endAdornment: searchQuery ? (
-                <InputAdornment position="end">
-                  <IconButton onClick={() => setSearchQuery('')}>
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-              className: 'rounded-lg bg-white',
-              sx: {
-                '& fieldset': {
-                  border: '3px solid black',
-                },
-                '&:hover fieldset': {
-                  border: '3px solid black',
-                },
-                '&.Mui-focused fieldset': {
-                  border: '3px solid black',
+      <Box className="p-4 flex flex-col w-full h-full overflow-y-auto justify-start items-center" onScroll={handleScroll}>
+        <Box
+          className={`sticky top-0 z-10 w-full mb-4 transition-transform duration-300 ${
+            searchHidden ? '-translate-y-[150%]' : 'translate-y-0'
+          }`}
+        >
+          <TextField
+            className="w-full"
+            placeholder="搜尋"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery ? (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setSearchQuery('')}>
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+                className: 'rounded-lg bg-white',
+                sx: {
+                  '& fieldset': {
+                    border: '3px solid black',
+                  },
+                  '&:hover fieldset': {
+                    border: '3px solid black',
+                  },
+                  '&.Mui-focused fieldset': {
+                    border: '3px solid black',
+                  },
                 },
               },
-            },
-          }}
-        />
+            }}
+          />
+        </Box>
         {listContent}
       </Box>
       <Box className="fixed bottom-8 right-8 flex flex-col items-center gap-4">
