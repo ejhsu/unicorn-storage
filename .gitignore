@@ -26,3 +26,6 @@ dist-ssr
 *.sw?
 
 .gemini
+
+# personal data — never commit
+scripts/import/firestore_items.json
