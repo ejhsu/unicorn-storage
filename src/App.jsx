@@ -47,7 +47,7 @@ function App() {
             setDoc(userDoc, userToken);
           });
         } catch (error) {
-          alert('push error', error);
+          console.error('push error', error);
         }
       }
     }
