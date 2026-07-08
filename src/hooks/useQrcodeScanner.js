@@ -2,6 +2,15 @@ import { Html5Qrcode, Html5QrcodeScannerState, Html5QrcodeSupportedFormats } fro
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
+ * The camera stream stays open in both SCANNING and PAUSED states — only stop()
+ * releases the camera tracks. Use this to decide when a stop() is needed.
+ */
+const isCameraActive = (qrcode) => {
+  const state = qrcode.getState();
+  return state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED;
+};
+
+/**
  * A React hook for using the html5-qrcode library.
  *
  * @param {string} elementId - The ID of the DOM element to render the scanner in.
@@ -15,6 +24,8 @@ const useQrCodeScanner = (elementId, qrCodeSuccessCallback, qrCodeErrorCallback,
   const [decodedText, setDecodedText] = useState('');
   const [error, setError] = useState(null);
   const html5QrcodeRef = useRef(null);
+  // Tracks unmount so a start() that resolves after teardown releases the camera.
+  const isTornDownRef = useRef(false);
 
   // Memoize the success callback
   const onScanSuccess = useCallback(
@@ -60,6 +71,12 @@ const useQrCodeScanner = (elementId, qrCodeSuccessCallback, qrCodeErrorCallback,
       }
 
       await qrcode.start({ facingMode: 'environment' }, config, onScanSuccess, onScanError);
+
+      // The component may have unmounted while start() was in flight; if so its
+      // cleanup already ran and missed the camera, so release it now.
+      if (isTornDownRef.current) {
+        await qrcode.stop();
+      }
     } catch (err) {
       const startError = `Failed to start scanner: ${err}`;
       setError(startError);
@@ -69,7 +86,8 @@ const useQrCodeScanner = (elementId, qrCodeSuccessCallback, qrCodeErrorCallback,
 
   const stopScanner = useCallback(async () => {
     const qrcode = html5QrcodeRef.current;
-    if (qrcode && qrcode.getState() === Html5QrcodeScannerState.SCANNING) {
+    // Both SCANNING and PAUSED keep the camera stream open — only stop() releases it.
+    if (qrcode && isCameraActive(qrcode)) {
       try {
         await qrcode.stop();
       } catch (err) {
@@ -105,10 +123,14 @@ const useQrCodeScanner = (elementId, qrCodeSuccessCallback, qrCodeErrorCallback,
     }
 
     const qrcode = html5QrcodeRef.current;
+    isTornDownRef.current = false;
 
-    // Cleanup function to stop the scanner when the component unmounts
+    // Cleanup function to release the camera when the component unmounts.
+    // Must also stop when PAUSED (e.g. after a successful scan), otherwise the
+    // camera stream stays open after navigating away from the scan page.
     return () => {
-      if (qrcode && qrcode.getState() === Html5QrcodeScannerState.SCANNING) {
+      isTornDownRef.current = true;
+      if (qrcode && isCameraActive(qrcode)) {
         qrcode.stop().catch((err) => {
           console.error('Failed to stop the scanner on cleanup.', err);
         });
