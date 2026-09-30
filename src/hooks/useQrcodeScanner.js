@@ -14,9 +14,9 @@ const isCameraActive = (qrcode) => {
  * A React hook for using the html5-qrcode library.
  *
  * @param {string} elementId - The ID of the DOM element to render the scanner in.
- * @param {object} config - The configuration object for Html5Qrcode.
  * @param {function} qrCodeSuccessCallback - Optional callback for successful scans.
  * @param {function} qrCodeErrorCallback - Optional callback for errors during scanning.
+ * @param {object} config - The configuration object for Html5Qrcode.
  * @param {boolean} verbose - If true, logs verbose output to the console.
  * @returns {object} An object containing decodedText, error, and functions to start and stop the scanner.
  */

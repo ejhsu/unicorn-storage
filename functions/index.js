@@ -33,7 +33,6 @@ exports.expirynotify = onSchedule({ schedule: '0 12 * * *', timeZone: 'Asia/Taip
   const snapshot = await db.collection('/storage/1/items').where('expiry', '<=', epochMillis7DaysAfter).get();
   const targetItems = [];
   snapshot.forEach((doc) => {
-    logger.log(`Expired item: ${doc.id} ${JSON.stringify(doc.data())}`);
     targetItems.push(doc.data());
   });
 
@@ -43,21 +42,27 @@ exports.expirynotify = onSchedule({ schedule: '0 12 * * *', timeZone: 'Asia/Taip
   }
 
   const expired = targetItems.filter((item) => item.expiry <= epochEndOfToday);
+  logger.log(`Target items: ${targetItems.length} (expired ${expired.length})`);
 
   const tokens = await db.collection('/fcm-tokens/1/user-tokens').get();
   const registrationTokens = [];
   tokens.forEach((doc) => {
-    logger.log(`User: ${doc.id} ${JSON.stringify(doc.data())}`);
-    logger.log(`Adding tokens: ${JSON.stringify(doc.data().tokens)}`);
     registrationTokens.push(...doc.data().tokens);
   });
+  logger.log(`Users: ${tokens.size}, tokens: ${registrationTokens.length}`);
   const message = {
     data: { expired: `${expired.length}`, expiredSoon: `${targetItems.length - expired.length}` },
     tokens: registrationTokens,
   };
 
   const resp = await messaging.sendEachForMulticast(message);
-  logger.log(`response of sendEachForMulticast: ${resp.successCount} ${resp.failureCount} ${JSON.stringify(resp.responses)}`);
+  const errorCodes = {};
+  resp.responses.forEach(({ error }) => {
+    if (error) {
+      errorCodes[error.code] = (errorCodes[error.code] || 0) + 1;
+    }
+  });
+  logger.log(`sendEachForMulticast: success ${resp.successCount}, failure ${resp.failureCount}, errors ${JSON.stringify(errorCodes)}`);
 
   logger.log('expiry notifications proceeded');
 });

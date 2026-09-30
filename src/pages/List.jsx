@@ -278,7 +278,10 @@ function List() {
           className="size-[60px] rounded-[10px] border-3 border-solid border-black"
           color="primary"
           onClick={() => {
-            Notification.requestPermission();
+            // iOS Safari 分頁等環境沒有 Notification API
+            if ('Notification' in window) {
+              Notification.requestPermission();
+            }
             if (localStorage.getItem('autoScan') === 'true') {
               navigate('/items/scan');
             } else {

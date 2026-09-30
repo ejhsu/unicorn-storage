@@ -4,16 +4,18 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import { Box, Button, FormControl, FormHelperText, FormLabel, IconButton, TextField } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { endOfDay, fromUnixTime, getUnixTime, isPast, isValid } from 'date-fns';
+import { endOfDay, fromUnixTime, getUnixTime, isSameDay, isValid } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { fromZonedTime } from 'date-fns-tz';
 import { isEmpty } from 'lodash-es';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useLocation, useNavigate, useParams } from 'react-router';
 
 import AlertDialog from '../components/AlertDialog';
 import { getCode, loadItem as fsLoadItem, setCode, upsertItem } from '../services/item';
+
+const toExpiry = (date) => getUnixTime(fromZonedTime(endOfDay(date), 'Asia/Taipei')) * 1000;
 
 const Item = () => {
   const navigate = useNavigate();
@@ -25,11 +27,12 @@ const Item = () => {
 
   const [alertMessage, setAlertMessage] = useState(null);
   const [item, setItem] = useState(null);
+  // hold original expiry date if editing item
+  const originalDateRef = useRef(null);
 
   const {
     control,
     handleSubmit,
-    setError,
     setValue,
     formState: { errors },
   } = useForm({
@@ -41,6 +44,10 @@ const Item = () => {
     },
   });
 
+  // 可選的到期日：今天或之後；編輯時另外允許沿用原到期日
+  const isSelectableDate = (date) =>
+    toExpiry(date) >= Date.now() || (originalDateRef.current !== null && isSameDay(date, originalDateRef.current));
+
   const onSubmit = async (data) => {
     const now = new Date();
     const docId = item?.docId || `${now.valueOf()}`;
@@ -50,10 +57,11 @@ const Item = () => {
         upsertItem(docId, {
           docId,
           name: data.name,
-          expiry: getUnixTime(fromZonedTime(endOfDay(data.date), 'Asia/Taipei')) * 1000,
+          expiry: toExpiry(data.date),
           created: item?.created || now.valueOf(),
           updated: now.valueOf(),
           code: itemCode,
+          note: data.note,
         }),
         itemCode ? setCode(itemCode, data.name) : null,
       ]);
@@ -88,9 +96,11 @@ const Item = () => {
   const loadItem = useCallback(
     async (id) => {
       const data = await fsLoadItem(id);
+      const date = fromUnixTime(data.expiry / 1000);
+      originalDateRef.current = date;
       setItem(data);
       setValue('name', data.name);
-      setValue('date', fromUnixTime(data.expiry / 1000));
+      setValue('date', date);
       setValue('note', data.note || '');
     },
     [setValue],
@@ -170,15 +180,14 @@ const Item = () => {
             <Controller
               name="date"
               control={control}
-              rules={{ required: '請選擇日期', validate: (val) => isValid(val) && !isPast(val) }}
+              rules={{ required: '請選擇日期', validate: (val) => isValid(val) && isSelectableDate(val) }}
               render={({ field }) => {
                 return (
                   <Box className="w-full flex items-center">
                     <DatePicker
                       {...field}
                       className={errors.date ? 'border2d-error w-full' : 'border2d w-full'}
-                      disablePast
-                      onError={(newError) => setError('date', newError)}
+                      shouldDisableDate={(day) => !isSelectableDate(day)}
                       slotProps={{
                         toolbar: { hidden: true },
                         textField: {

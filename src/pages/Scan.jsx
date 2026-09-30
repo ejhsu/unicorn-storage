@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router';
 
 import useQrCodeScanner from '../hooks/useQrcodeScanner';
 
+const SCANNER_CONFIG = { fps: 45 };
+
 const Scan = () => {
   const navigate = useNavigate();
   const [autoScan, setAutoScan] = useState(localStorage.getItem('autoScan') === 'true');
@@ -16,8 +18,8 @@ const Scan = () => {
       console.log(`Scan result: ${decodedText}`, decodedResult);
       navigate('/items', { state: { code: decodedText }, replace: true });
     },
-    { fps: 45 },
-    false,
+    undefined,
+    SCANNER_CONFIG,
   );
 
   useEffect(() => {
