@@ -14,8 +14,22 @@ import { useLocation, useNavigate, useParams } from 'react-router';
 
 import AlertDialog from '../components/AlertDialog';
 import { getCode, loadItem as fsLoadItem, setCode, upsertItem } from '../services/item';
+import { TimeoutError, withTimeout } from '../utils/promise';
+
+const SAVE_TIMEOUT_MS = 10000;
 
 const toExpiry = (date) => getUnixTime(fromZonedTime(endOfDay(date), 'Asia/Taipei')) * 1000;
+
+const getSaveErrorMessage = (error) => {
+  if (error instanceof TimeoutError) {
+    return '連線逾時，請確認網路後再試一次';
+  }
+  if (error?.code === 'permission-denied') {
+    return '沒有儲存權限，請確認登入的帳號';
+  }
+  const codeSuffix = error?.code ? `（${error.code}）` : '';
+  return `請稍後再試一次${codeSuffix}`;
+};
 
 const Item = () => {
   const navigate = useNavigate();
@@ -27,6 +41,12 @@ const Item = () => {
 
   const [alertMessage, setAlertMessage] = useState(null);
   const [item, setItem] = useState(null);
+  const [saving, setSaving] = useState(false);
+  // state 要等重新渲染才會讓按鈕 disabled，連點或按 Enter 的第二次送出靠 ref 擋下
+  const savingRef = useRef(false);
+  // 第一次送出的時刻。新品項的 docId/created 以它為準，逾時後重試會寫回同一份文件，
+  // 先前那次寫入就算晚到也不會多出一筆
+  const firstSubmitAtRef = useRef(null);
   // hold original expiry date if editing item
   const originalDateRef = useRef(null);
 
@@ -49,22 +69,33 @@ const Item = () => {
     toExpiry(date) >= Date.now() || (originalDateRef.current !== null && isSameDay(date, originalDateRef.current));
 
   const onSubmit = async (data) => {
-    const now = new Date();
-    const docId = item?.docId || `${now.valueOf()}`;
+    if (savingRef.current) {
+      return;
+    }
+    savingRef.current = true;
+    setSaving(true);
+
+    const now = Date.now();
+    firstSubmitAtRef.current ??= now;
+    const docId = item?.docId || `${firstSubmitAtRef.current}`;
     const itemCode = code || item?.code || '';
     try {
-      await Promise.all([
-        upsertItem(docId, {
-          docId,
-          name: data.name,
-          expiry: toExpiry(data.date),
-          created: item?.created || now.valueOf(),
-          updated: now.valueOf(),
-          code: itemCode,
-          note: data.note,
-        }),
-        itemCode ? setCode(itemCode, data.name) : null,
-      ]);
+      await withTimeout(
+        Promise.all([
+          upsertItem(docId, {
+            docId,
+            name: data.name,
+            expiry: toExpiry(data.date),
+            created: item?.created || firstSubmitAtRef.current,
+            updated: now,
+            code: itemCode,
+            note: data.note,
+          }),
+          itemCode ? setCode(itemCode, data.name) : null,
+        ]),
+        SAVE_TIMEOUT_MS,
+      );
+      // 成功後維持 loading 直到離開頁面，避免在提示期間再次送出
       setAlertMessage({
         title: '儲存成功',
         cancelText: '',
@@ -76,9 +107,11 @@ const Item = () => {
         handleBack(docId);
       }, 1500);
     } catch (error) {
+      savingRef.current = false;
+      setSaving(false);
       setAlertMessage({
-        title: '儲存失敗失敗',
-        description: JSON.stringify(error),
+        title: '儲存失敗',
+        description: getSaveErrorMessage(error),
         mode: 'error',
         cancelText: '好',
         confirmText: '',
@@ -242,8 +275,16 @@ const Item = () => {
           />
         </FormControl>
 
-        <Button type="submit" fullWidth variant="contained" color="primary" className="mt-4 border2d text-black text-xl">
-          儲存
+        <Button
+          type="submit"
+          fullWidth
+          variant="contained"
+          color="primary"
+          loading={saving}
+          loadingPosition="start"
+          className="mt-4 border2d text-black text-xl"
+        >
+          {saving ? '儲存中' : '儲存'}
         </Button>
       </form>
       <AlertDialog open={!isEmpty(alertMessage)} {...alertMessage} />

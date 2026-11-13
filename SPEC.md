@@ -5,9 +5,9 @@
 | 項目 | 內容 |
 |---|---|
 | 文件類型 | 活規格（living spec）：規格驅動開發（Spec-Driven Development）的唯一需求來源 |
-| 版本 | 2.1 |
+| 版本 | 2.2 |
 | 狀態 | 生效中：描述 `main` 的現況行為，並標出與規格不符之處 |
-| 最後更新 | 2026-09-30 |
+| 最後更新 | 2026-11-13 |
 | 範圍 | Web App（`src/`）、排程函式 `expirynotify`（`functions/`）、Firestore 資料契約、Hosting 設定 |
 | 相關文件 | `README.md`（專案介紹）、`CLAUDE.md`（開發注意事項）、`scripts/import/README.md`（匯入格式） |
 
@@ -205,17 +205,21 @@
 - AC4：把該品項的到期日改成 2026-09-21 → 無法選取或顯示錯誤；改成今天或之後 → 儲存成功。
 - 實作：`src/pages/Item.jsx`（`toExpiry`、`isSelectableDate`）
 
-**FR-ITEM-03 儲存**　`Must`｜`有偏差`（DEV-14）
+**FR-ITEM-03 儲存**　`Must`｜`已實作`
 - 當使用者按「儲存」且驗證通過時，系統應以 upsert 寫入品項：
-  - 新品項：`docId` 與 `created` 取當下的 epoch ms。
+  - 新品項：`docId` 與 `created` 取第一次按「儲存」的 epoch ms；失敗後重試沿用同一個值。
   - 既有品項：保留 `docId` 與 `created`。
   - `updated` 取當下；`expiry` 依 BR-01 換算；`code`、`note` 一併寫入。
 - 當品項帶有條碼時，系統應同時更新條碼字典（FR-DICT-02）。
+- 在寫入期間，系統應讓「儲存」按鈕顯示載入中（文案「儲存中」）並停用，忽略連點與 Enter 造成的再次送出；成功後維持停用直到離開頁面。
 - 成功時提示「儲存成功」1.5 秒後回到清單（FR-LIST-07）。
-- 若寫入失敗，則系統應顯示看得懂的錯誤，並保留使用者輸入。
+- 若寫入失敗，則系統應顯示「儲存失敗」與看得懂的原因，恢復按鈕，並保留使用者輸入。
+- 若寫入超過 10 秒（`SAVE_TIMEOUT_MS`）仍未完成，則系統應停止等待，視為失敗並提示「連線逾時，請確認網路後再試一次」。Firestore 無法取消已送出的寫入，逾時的寫入可能稍後才完成；因為重試沿用同一個 `docId`，晚到的寫入不會多出一筆品項（EC-16）。
 - AC1：修改備註並儲存 → 重新開啟仍看得到新備註。
 - AC2：編輯既有品項 → `created` 不變、`updated` 更新。
-- 實作：`src/pages/Item.jsx`
+- AC3：新增品項時快速連點「儲存」→ 只產生一筆品項。
+- AC4：以 DevTools 設為離線後按「儲存」→ 按鈕顯示「儲存中」；10 秒後顯示逾時，按鈕恢復、輸入保留；恢復連線後再按「儲存」→ 清單只有一筆該品項。
+- 實作：`src/pages/Item.jsx`（`onSubmit`、`SAVE_TIMEOUT_MS`）、`src/utils/promise.js`（`withTimeout`）
 
 **FR-ITEM-04 返回**　`Must`｜`已實作`
 - 當使用者按返回時，系統應回到清單，不寫入任何資料。
@@ -527,12 +531,13 @@ sequenceDiagram
 | EC-07 | 剛在「新增」按鈕授權通知 | token 立即登錄 | 下次開啟 App 才登錄（DEV-10） |
 | EC-08 | 允許清單外的帳號 | 提示並登出 | 只有清單頁會偵測；其他頁面的權限錯誤沒有處理 |
 | EC-09 | 讀取清單失敗（例如離線） | 顯示錯誤與重試 | 一直顯示載入中（DEV-12） |
-| EC-10 | 寫入失敗 | 顯示看得懂的錯誤、保留輸入 | 保留輸入，但文案重複且顯示原始 JSON（DEV-14） |
+| EC-10 | 寫入失敗 | 顯示看得懂的錯誤、保留輸入 | 符合 |
 | EC-11 | 兩台裝置同時編輯同一品項 | 後寫入者整筆覆蓋 | 符合（已知取捨；做離線同步時再議，FUT-08） |
 | EC-12 | token 失效（解除安裝、清除網站資料） | 發送失敗後移除 | 只記錄不移除（DEV-09） |
 | EC-13 | token 超過 500 個 | 分批發送 | 整次發送失敗（DEV-09） |
 | EC-14 | 裝置時區不是 UTC+8 | 日期與天數不受影響 | 可能差一天，編輯時可能改掉到期日（DEV-15） |
 | EC-15 | App 在前景時收到推播 | 使用者看得到摘要 | 只寫入 console（DEV-08） |
+| EC-16 | 儲存時離線或回應過慢 | 10 秒後提示逾時、保留輸入；逾時的寫入晚到時，重試不會產生重複品項 | 符合 |
 
 ---
 
@@ -568,6 +573,7 @@ sequenceDiagram
 - [ ] 新增今天到期的品項 → 清單顯示「今天過期」（FR-ITEM-02、FR-LIST-02）
 - [ ] 編輯已過期品項、只改備註 → 儲存成功，到期日不變（FR-ITEM-02）
 - [ ] 修改備註並重新開啟 → 備註仍在（FR-ITEM-03）
+- [ ] 新增時連點「儲存」只產生一筆；離線儲存 10 秒後提示逾時（FR-ITEM-03）
 - [ ] 複製；刪除（含取消）（FR-LIST-05、FR-LIST-06）
 - [ ] 在 Cloud Scheduler 手動執行 `expirynotify` → 背景推播內容正確，點擊後開啟 App（FR-NOTI-01～04）
 
@@ -578,7 +584,7 @@ sequenceDiagram
 | FR-AUTH-01～02 | `src/App.jsx`、`src/pages/List.jsx` | 手動；規則測試（規劃） | 已實作 |
 | FR-AUTH-03 | `src/App.jsx`、`src/services/firebase.js` | 手動 | 有偏差 |
 | FR-LIST-01～09 | `src/pages/List.jsx`、`src/components/` | 手動 | 01 有偏差 |
-| FR-ITEM-01～05 | `src/pages/Item.jsx` | 手動 | 03、05 有偏差 |
+| FR-ITEM-01～05 | `src/pages/Item.jsx`、`src/utils/promise.js` | 手動 | 05 有偏差 |
 | FR-SCAN-01～05 | `src/pages/Scan.jsx`、`src/hooks/useQrcodeScanner.js` | 手動 | 05 未實作 |
 | FR-DICT-01～02 | `src/pages/Item.jsx`、`src/services/item.js` | 手動 | 已實作 |
 | FR-NOTI-01～04 | `functions/index.js`、`src/services/firebase-messaging-sw.js` | 手動；函式測試（規劃） | 03、04 有偏差 |
@@ -604,7 +610,6 @@ sequenceDiagram
 | DEV-11 | 低 | `registerServiceWorker()` 沒有被 await，外層 `try/catch` 攔不到它的失敗，變成未處理的 Promise rejection；使用者也不知道自己收不到提醒 | FR-AUTH-03 | await 並處理錯誤；依 Q-04 提示 |
 | DEV-12 | 低 | 讀取清單時，`permission-denied` 以外的錯誤被忽略，畫面一直停在載入中 | FR-LIST-01 | 顯示錯誤與重試按鈕 |
 | DEV-13 | 低 | `expirynotify` 與 `scripts/` 寫死 `storage/1`、`fcm-tokens/1`，沒有經過 `getStoragePath()` | GR-01 | 集中路徑建構 |
-| DEV-14 | 低 | 寫入失敗的標題是「儲存失敗失敗」，內文直接顯示 `JSON.stringify(error)` | FR-ITEM-03 | 修正文案，顯示看得懂的錯誤 |
 | DEV-15 | 低 | 「今天」取自裝置本地日期，編輯頁也以裝置時區顯示到期時刻。非 UTC+8 的裝置在兩地日期不同的時段，剩餘天數會差一天；UTC+8 以東的裝置（如日本）編輯時日期會顯示成隔天，儲存後到期日延後一天 | NFR-01、BR-01 | 一律以 Asia/Taipei 計算「今天」，並用 `toZonedTime`／`formatInTimeZone` 在 Asia/Taipei 顯示 |
 | DEV-16 | 待決 | 在編輯頁按掃描，成功後進入新增頁，而不是回填目前的品項 | FR-ITEM-05 | 依 Q-01 決議 |
 
@@ -618,6 +623,7 @@ sequenceDiagram
 | DEV-04 | 沒有 Notification API 時，點「新增」沒有反應 | 先檢查 `'Notification' in window` | 2.1 |
 | DEV-05 | 函式日誌含品項內容、email 與 token | 只記錄數量與錯誤代碼 | 2.1 |
 | DEV-07 | 已過期品項無法只改名稱或備註 | 依 Q-02 決議：沿用原到期日不重新檢查；日期選擇器中，原日期以外的過去日期不可選 | 2.1 |
+| DEV-14 | 寫入失敗的標題是「儲存失敗失敗」，內文直接顯示 `JSON.stringify(error)` | 標題改為「儲存失敗」；內文依錯誤顯示逾時、沒有權限，或「請稍後再試一次（錯誤代碼）」 | 2.2 |
 
 ---
 
@@ -701,6 +707,7 @@ sequenceDiagram
 
 | 版本 | 日期 | 變更 |
 |---|---|---|
+| 2.2 | 2026-11-13 | FR-ITEM-03 新增儲存中狀態、防止重複送出與 10 秒逾時（AC3、AC4、EC-16）；修正 DEV-14 |
 | 2.1 | 2026-09-30 | 修正 DEV-01、02、03、04、05、07；Q-02 決議採 A，更新 BR-07 與 FR-ITEM-02；§13 拆成未解決／已解決 |
 | 2.0 | 2026-09-30 | 改寫為規格驅動格式：編號需求與 EARS 驗收準則、業務規則、資料與介面契約、流程圖、驗證與追溯、已知偏差、ADR、擴充護欄 |
 | 1.0 | — | 初版概要：目標、使用者流程、頁面、資料模型、到期通知、技術方向、擴充方向 |
